@@ -20,12 +20,14 @@ export default function Chat({ todayEntry, history = [] }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [listening, setListening] = useState(false)
   // 'idle' | 'thinking' | 'talking' — drives Mira's animation.
   const [avatarState, setAvatarState] = useState('idle')
 
   const scrollRef = useRef(null)
   const didGreet = useRef(false)
   const talkTimer = useRef(null)
+  const recognitionRef = useRef(null)
 
   // Auto-scroll to the latest message whenever the list or loading state changes.
   useEffect(() => {
@@ -33,8 +35,52 @@ export default function Chat({ todayEntry, history = [] }) {
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, loading])
 
-  // Clean up the talk timer on unmount.
-  useEffect(() => () => clearTimeout(talkTimer.current), [])
+  // Clean up the talk timer and recognition on unmount.
+  useEffect(() => {
+    return () => {
+      clearTimeout(talkTimer.current)
+      recognitionRef.current?.stop?.()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const SpeechRecognitionCtor =
+      window.SpeechRecognition || window.webkitSpeechRecognition
+
+    if (!SpeechRecognitionCtor) return
+
+    const recognition = new SpeechRecognitionCtor()
+    recognition.lang = 'en-US'
+    recognition.continuous = false
+    recognition.interimResults = false
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0]?.transcript || '')
+        .join(' ')
+        .trim()
+
+      if (transcript) {
+        setInput(transcript)
+      }
+      setListening(false)
+      setAvatarState('idle')
+    }
+
+    recognition.onerror = () => {
+      setListening(false)
+      setAvatarState('idle')
+    }
+
+    recognition.onend = () => {
+      setListening(false)
+      setAvatarState('idle')
+    }
+
+    recognitionRef.current = recognition
+  }, [])
 
   // Make Mira "talk" for a spell proportional to the reply length, then rest.
   function playTalking(text) {
@@ -42,6 +88,39 @@ export default function Chat({ todayEntry, history = [] }) {
     clearTimeout(talkTimer.current)
     const duration = Math.min(6000, Math.max(1800, (text?.length || 0) * 45))
     talkTimer.current = setTimeout(() => setAvatarState('idle'), duration)
+  }
+
+  function speak(text) {
+    if (typeof window === 'undefined') return
+
+    const speechSynthesis = window.speechSynthesis
+    const SpeechSynthesisUtteranceCtor = window.SpeechSynthesisUtterance
+
+    if (!speechSynthesis || !SpeechSynthesisUtteranceCtor) return
+
+    speechSynthesis.cancel()
+
+    const utterance = new SpeechSynthesisUtteranceCtor(text)
+    utterance.lang = 'en-US'
+    utterance.rate = 1
+    utterance.pitch = 1
+    speechSynthesis.speak(utterance)
+  }
+
+  function startVoice() {
+    if (!recognitionRef.current || listening) return
+
+    setListening(true)
+    setAvatarState('talking')
+    recognitionRef.current.start()
+  }
+
+  function stopVoice() {
+    if (!recognitionRef.current || !listening) return
+
+    recognitionRef.current.stop()
+    setListening(false)
+    setAvatarState('idle')
   }
 
   // On first load, automatically request an opening greeting + insight.
@@ -69,6 +148,7 @@ export default function Chat({ todayEntry, history = [] }) {
       })
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
       playTalking(reply)
+      speak(reply)
     } catch (err) {
       const fallback =
         "I'm having trouble connecting right now. Please try again in a moment."
@@ -77,6 +157,7 @@ export default function Chat({ todayEntry, history = [] }) {
         { role: 'assistant', content: fallback },
       ])
       playTalking(fallback)
+      speak(fallback)
     } finally {
       setLoading(false)
     }
@@ -92,6 +173,32 @@ export default function Chat({ todayEntry, history = [] }) {
 
   return (
     <section style={styles.card}>
+      <div style={styles.assistantBar}>
+        <Avatar state={loading ? 'thinking' : avatarState} mood={todayEntry?.mood} />
+        <div style={styles.assistantCopy}>
+          <div style={styles.assistantName}>Mira</div>
+          <div style={styles.assistantHint}>
+            {listening ? 'Listening for your voice…' : 'Tap to speak with your companion'}
+          </div>
+        </div>
+        <button
+          type="button"
+          onMouseDown={startVoice}
+          onMouseUp={stopVoice}
+          onMouseLeave={stopVoice}
+          onTouchStart={startVoice}
+          onTouchEnd={stopVoice}
+          onTouchCancel={stopVoice}
+          style={{
+            ...styles.voiceBtn,
+            ...(listening ? styles.voiceBtnActive : {}),
+          }}
+          aria-pressed={listening}
+        >
+          {listening ? 'Listening' : 'Hold to talk'}
+        </button>
+      </div>
+
       <h2 style={styles.heading}>Wellness Companion</h2>
 
       <div ref={scrollRef} style={styles.messages}>
@@ -154,6 +261,41 @@ const styles = {
     border: `1px solid ${COLORS.border}`,
     display: 'flex',
     flexDirection: 'column',
+  },
+  assistantBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    marginBottom: '1rem',
+    padding: '0.75rem',
+    borderRadius: 12,
+    background: COLORS.bg,
+    border: `1px solid ${COLORS.border}`,
+  },
+  assistantCopy: {
+    flex: 1,
+  },
+  assistantName: {
+    fontWeight: 700,
+    color: COLORS.accent,
+  },
+  assistantHint: {
+    fontSize: '0.85rem',
+    color: COLORS.muted,
+    marginTop: '0.2rem',
+  },
+  voiceBtn: {
+    border: 'none',
+    borderRadius: 999,
+    padding: '0.55rem 0.85rem',
+    background: COLORS.accent,
+    color: '#04210f',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  voiceBtnActive: {
+    background: '#ff8a80',
+    color: '#2f0a08',
   },
   heading: {
     marginTop: 0,

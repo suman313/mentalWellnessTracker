@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Chat from './Chat.jsx'
 import { getWellnessReply } from '../lib/ai.js'
@@ -19,6 +19,35 @@ const todayEntry = {
 describe('Chat', () => {
   beforeEach(() => {
     getWellnessReply.mockReset()
+    window.speechSynthesis = { cancel: vi.fn(), speak: vi.fn() }
+    window.SpeechRecognition = undefined
+    window.webkitSpeechRecognition = undefined
+  })
+
+  it('offers push-to-talk voice control that starts and stops speech recognition', async () => {
+    const start = vi.fn()
+    const stop = vi.fn()
+    const recognition = {
+      start,
+      stop,
+      lang: 'en-US',
+      continuous: false,
+      interimResults: false,
+      onresult: null,
+      onerror: null,
+      onend: null,
+    }
+
+    window.SpeechRecognition = vi.fn(() => recognition)
+
+    render(<Chat todayEntry={todayEntry} history={[todayEntry]} />)
+    const button = screen.getByRole('button', { name: /hold to talk/i })
+
+    fireEvent.mouseDown(button)
+    expect(start).toHaveBeenCalledTimes(1)
+
+    fireEvent.mouseUp(button)
+    expect(stop).toHaveBeenCalledTimes(1)
   })
 
   it('requests an opening greeting automatically on mount', async () => {
