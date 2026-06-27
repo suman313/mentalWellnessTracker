@@ -5,6 +5,20 @@ const EXAM_TYPES = ['NEET', 'JEE', 'CUET', 'CAT', 'GATE', 'UPSC']
 const STORAGE_KEY = 'wellnessHistory'
 const MAX_ENTRIES = 30
 
+function loadHistory() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    const parsed = stored ? JSON.parse(stored) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function saveHistory(history) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history))
+}
+
 // Maps a 1–10 mood score to an emoji + label band.
 function moodFace(mood) {
   if (mood <= 3) return { emoji: '😔', label: 'Struggling' }
@@ -39,22 +53,13 @@ export default function MoodLogger({ onLogComplete }) {
       journal: journal.trim(),
     }
 
-    let history = []
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) history = JSON.parse(stored)
-      if (!Array.isArray(history)) history = []
-    } catch {
-      history = []
-    }
-
-    // Append and keep only the most recent 30 entries.
+    const history = loadHistory()
     const updated = [...history, todayEntry].slice(-MAX_ENTRIES)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    saveHistory(updated)
 
     setJournal('')
     setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    window.setTimeout(() => setSaved(false), 2500)
 
     if (typeof onLogComplete === 'function') {
       onLogComplete(todayEntry)
