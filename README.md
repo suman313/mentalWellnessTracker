@@ -1,34 +1,28 @@
-# Mental Wellness Tracker
+# MindMate — Mental Wellness Tracker
 
-A simple mental wellness tracking app designed to help users monitor their mood, habits, and self-care activities.
+## Vertical
+Mental Wellness Tracker for Indian competitive exam students (NEET, JEE, CUET, CAT, GATE, UPSC)
 
-## Features
+## Approach and Logic
+- Student logs daily mood (1–10) and free-form journal entry
+- Google Gemini 1.5 Flash analyzes journal + 7-day mood history
+- AI companion gives hyper-personalized coping strategies, mindfulness exercises, and motivational support
+- Mood trends visualized with SVG chart and streak tracking
 
-- Track daily mood and well-being
-- Record habits and self-care activities
-- Review progress over time
+## How the Solution Works
+1. User selects exam type and logs mood + journal
+2. Context (exam, mood, history) is sent to Gemini via serverless API
+3. Gemini responds as an empathetic companion with contextual wellness support
+4. All data stored in localStorage — no account needed
+5. Insights tab shows patterns and allows AI pattern analysis
 
-## Getting Started
+## Tech Stack
+- Frontend: React + Vite
+- AI: Google Gemini 1.5 Flash
+- Deployment: Vercel (serverless functions)
+- Storage: localStorage
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   ```
-2. Install dependencies (if applicable):
-   ```bash
-   # Example for npm projects
-   npm install
-   ```
-3. Run the application:
-   ```bash
-   # Example for npm projects
-   npm start
-   ```
-
-## Contributing
-
-Contributions are welcome. Please open an issue or submit a pull request with your ideas or fixes.
-
-## License
-
-This project is available under the MIT License.
+## Assumptions
+- Single user per browser session
+- Internet connection required for AI responses
+- Gemini API key set as environment variable on Vercel
