@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getWellnessReply } from '../lib/ai.js'
+import Avatar from './Avatar.jsx'
 
 const COLORS = {
   bg: '#1a1a2e',
@@ -19,15 +20,29 @@ export default function Chat({ todayEntry, history = [] }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  // 'idle' | 'thinking' | 'talking' — drives Mira's animation.
+  const [avatarState, setAvatarState] = useState('idle')
 
   const scrollRef = useRef(null)
   const didGreet = useRef(false)
+  const talkTimer = useRef(null)
 
   // Auto-scroll to the latest message whenever the list or loading state changes.
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, loading])
+
+  // Clean up the talk timer on unmount.
+  useEffect(() => () => clearTimeout(talkTimer.current), [])
+
+  // Make Mira "talk" for a spell proportional to the reply length, then rest.
+  function playTalking(text) {
+    setAvatarState('talking')
+    clearTimeout(talkTimer.current)
+    const duration = Math.min(6000, Math.max(1800, (text?.length || 0) * 45))
+    talkTimer.current = setTimeout(() => setAvatarState('idle'), duration)
+  }
 
   // On first load, automatically request an opening greeting + insight.
   useEffect(() => {
@@ -42,6 +57,7 @@ export default function Chat({ todayEntry, history = [] }) {
       setMessages((prev) => [...prev, { role: 'user', content: message }])
     }
     setLoading(true)
+    setAvatarState('thinking')
 
     try {
       const { reply } = await getWellnessReply({
@@ -52,15 +68,15 @@ export default function Chat({ todayEntry, history = [] }) {
         message,
       })
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      playTalking(reply)
     } catch (err) {
+      const fallback =
+        "I'm having trouble connecting right now. Please try again in a moment."
       setMessages((prev) => [
         ...prev,
-        {
-          role: 'assistant',
-          content:
-            "I'm having trouble connecting right now. Please try again in a moment.",
-        },
+        { role: 'assistant', content: fallback },
       ])
+      playTalking(fallback)
     } finally {
       setLoading(false)
     }

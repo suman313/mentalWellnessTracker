@@ -5,6 +5,10 @@
 // puter.ai.chat echoes a canned reply that includes the user's message, which
 // lets tests assert that context flowed through.
 export async function stubAi(page, reply = 'Take a deep breath — you’ve got this. 🌱') {
+  // Block the real Puter.js bundle so it can't overwrite our window.puter stub
+  // (and so the suite never reaches out to the network / a login popup).
+  await page.route('**/js.puter.com/**', (route) => route.abort())
+
   await page.addInitScript((cannedReply) => {
     window.puter = {
       ai: {
