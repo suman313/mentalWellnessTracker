@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Chat from './Chat.jsx'
 import { getWellnessReply } from '../lib/ai.js'
@@ -43,10 +43,14 @@ describe('Chat', () => {
     render(<Chat todayEntry={todayEntry} history={[todayEntry]} />)
     const button = screen.getByRole('button', { name: /hold to talk/i })
 
-    fireEvent.mouseDown(button)
+    act(() => {
+      fireEvent.mouseDown(button)
+    })
     expect(start).toHaveBeenCalledTimes(1)
 
-    fireEvent.mouseUp(button)
+    act(() => {
+      fireEvent.mouseUp(button)
+    })
     expect(stop).toHaveBeenCalledTimes(1)
   })
 
@@ -66,8 +70,10 @@ describe('Chat', () => {
     getWellnessReply.mockResolvedValue({ reply: 'I am here for you.', source: 'puter' })
 
     render(<Chat todayEntry={todayEntry} history={[todayEntry]} />)
-    recognition.onresult({
-      results: [[{ transcript: 'Mira, I feel overwhelmed' }]],
+    act(() => {
+      recognition.onresult({
+        results: [[{ transcript: 'Mira, I feel overwhelmed' }]],
+      })
     })
 
     expect(await screen.findByText('I feel overwhelmed')).toBeInTheDocument()

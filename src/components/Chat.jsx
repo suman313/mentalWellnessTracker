@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getWellnessReply } from '../lib/ai.js'
 import Avatar from './Avatar.jsx'
 
@@ -16,12 +16,15 @@ const COLORS = {
 const OPENING_MESSAGE =
   'Hello, I just logged my mood and journal. Please greet me and share an initial insight.'
 
+function normalizeVoiceTranscript(text) {
+  return text.replace(/^mira\s*,?\s*/i, '').trim()
+}
+
 export default function Chat({ todayEntry, history = [] }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [listening, setListening] = useState(false)
-  const [voiceTranscript, setVoiceTranscript] = useState('')
   // 'idle' | 'thinking' | 'talking' — drives Mira's animation.
   const [avatarState, setAvatarState] = useState('idle')
 
@@ -29,6 +32,13 @@ export default function Chat({ todayEntry, history = [] }) {
   const didGreet = useRef(false)
   const talkTimer = useRef(null)
   const recognitionRef = useRef(null)
+  const loadingRef = useRef(false)
+  const pendingMessagesRef = useRef([])
+
+  const clearVoiceState = useCallback(() => {
+    setListening(false)
+    setAvatarState('idle')
+  }, [])
 
   // Auto-scroll to the latest message whenever the list or loading state changes.
   useEffect(() => {
@@ -43,6 +53,85 @@ export default function Chat({ todayEntry, history = [] }) {
       recognitionRef.current?.stop?.()
     }
   }, [])
+
+  useEffect(() => {
+    loadingRef.current = loading
+  }, [loading])
+
+  // Make Mira "talk" for a spell proportional to the reply length, then rest.
+  const playTalking = useCallback((text) => {
+    setAvatarState('talking')
+    clearTimeout(talkTimer.current)
+    const duration = Math.min(6000, Math.max(1800, (text?.length || 0) * 45))
+    talkTimer.current = setTimeout(() => setAvatarState('idle'), duration)
+  }, [])
+
+  const speak = useCallback((text) => {
+    if (typeof window === 'undefined') return
+
+    const speechSynthesis = window.speechSynthesis
+    const SpeechSynthesisUtteranceCtor = window.SpeechSynthesisUtterance
+
+    if (!speechSynthesis || !SpeechSynthesisUtteranceCtor) return
+
+    speechSynthesis.cancel()
+
+    const utterance = new SpeechSynthesisUtteranceCtor(text)
+    utterance.lang = 'en-US'
+    utterance.rate = 1
+    utterance.pitch = 1
+    speechSynthesis.speak(utterance)
+  }, [])
+
+  const sendToApi = useCallback(
+    async (message, { showUser = true } = {}) => {
+      if (loadingRef.current) {
+        if (showUser) {
+          pendingMessagesRef.current.push(message)
+        }
+        return
+      }
+
+      loadingRef.current = true
+      setLoading(true)
+      setAvatarState('thinking')
+
+      if (showUser) {
+        setMessages((prev) => [...prev, { role: 'user', content: message }])
+      }
+
+      try {
+        const { reply } = await getWellnessReply({
+          examType: todayEntry?.examType,
+          mood: todayEntry?.mood,
+          journal: todayEntry?.journal,
+          history,
+          message,
+        })
+        setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+        playTalking(reply)
+        speak(reply)
+      } catch {
+        const fallback =
+          "I'm having trouble connecting right now. Please try again in a moment."
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: fallback },
+        ])
+        playTalking(fallback)
+        speak(fallback)
+      } finally {
+        loadingRef.current = false
+        setLoading(false)
+
+        const nextMessage = pendingMessagesRef.current.shift()
+        if (nextMessage) {
+          sendToApi(nextMessage)
+        }
+      }
+    },
+    [history, playTalking, speak, todayEntry?.examType, todayEntry?.journal, todayEntry?.mood],
+  )
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -63,122 +152,58 @@ export default function Chat({ todayEntry, history = [] }) {
         .join(' ')
         .trim()
 
-      const cleaned = transcript
-        .replace(/^mira\s*,?\s*/i, '')
-        .trim()
+      const cleaned = normalizeVoiceTranscript(transcript)
 
       if (cleaned) {
         setInput(cleaned)
-        setVoiceTranscript(cleaned)
         sendToApi(cleaned)
-      } else {
-        setVoiceTranscript('')
       }
-      setListening(false)
-      setAvatarState('idle')
+      clearVoiceState()
     }
 
     recognition.onerror = () => {
-      setListening(false)
-      setAvatarState('idle')
+      clearVoiceState()
     }
 
     recognition.onend = () => {
-      setListening(false)
-      setAvatarState('idle')
+      clearVoiceState()
     }
 
     recognitionRef.current = recognition
-  }, [])
+  }, [clearVoiceState, sendToApi])
 
-  // Make Mira "talk" for a spell proportional to the reply length, then rest.
-  function playTalking(text) {
-    setAvatarState('talking')
-    clearTimeout(talkTimer.current)
-    const duration = Math.min(6000, Math.max(1800, (text?.length || 0) * 45))
-    talkTimer.current = setTimeout(() => setAvatarState('idle'), duration)
-  }
-
-  function speak(text) {
-    if (typeof window === 'undefined') return
-
-    const speechSynthesis = window.speechSynthesis
-    const SpeechSynthesisUtteranceCtor = window.SpeechSynthesisUtterance
-
-    if (!speechSynthesis || !SpeechSynthesisUtteranceCtor) return
-
-    speechSynthesis.cancel()
-
-    const utterance = new SpeechSynthesisUtteranceCtor(text)
-    utterance.lang = 'en-US'
-    utterance.rate = 1
-    utterance.pitch = 1
-    speechSynthesis.speak(utterance)
-  }
-
-  function startVoice() {
+  const startVoice = useCallback(() => {
     if (!recognitionRef.current || listening) return
 
     setListening(true)
     setAvatarState('talking')
     recognitionRef.current.start()
-  }
+  }, [listening])
 
-  function stopVoice() {
+  const stopVoice = useCallback(() => {
     if (!recognitionRef.current || !listening) return
 
     recognitionRef.current.stop()
-    setListening(false)
-    setAvatarState('idle')
-  }
+    clearVoiceState()
+  }, [clearVoiceState, listening])
 
   // On first load, automatically request an opening greeting + insight.
   useEffect(() => {
     if (didGreet.current) return
     didGreet.current = true
     sendToApi(OPENING_MESSAGE, { showUser: false })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [sendToApi])
 
-  async function sendToApi(message, { showUser = true } = {}) {
-    if (showUser) {
-      setMessages((prev) => [...prev, { role: 'user', content: message }])
-    }
-    setLoading(true)
-    setAvatarState('thinking')
-
-    try {
-      const { reply } = await getWellnessReply({
-        examType: todayEntry?.examType,
-        mood: todayEntry?.mood,
-        journal: todayEntry?.journal,
-        history,
-        message,
-      })
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
-      playTalking(reply)
-      speak(reply)
-    } catch (err) {
-      const fallback =
-        "I'm having trouble connecting right now. Please try again in a moment."
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: fallback },
-      ])
-      playTalking(fallback)
-      speak(fallback)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function handleSubmit(e) {
-    e.preventDefault()
-    const trimmed = input.trim()
-    if (!trimmed || loading) return
-    setInput('')
-    sendToApi(trimmed)
-  }
+  const handleSubmit = useCallback(
+    (e) => {
+      e.preventDefault()
+      const trimmed = input.trim()
+      if (!trimmed || loading) return
+      setInput('')
+      sendToApi(trimmed)
+    },
+    [input, loading, sendToApi],
+  )
 
   return (
     <section style={styles.card}>
