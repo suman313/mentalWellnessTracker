@@ -8,7 +8,7 @@
 // consistent regardless of which provider answers.
 
 // Route Puter to a Gemini model to keep the "powered by Google Gemini" story.
-const PUTER_MODEL = 'google/gemini-2.0-flash'
+const PUTER_MODEL = 'gemini-2.5-flash'
 
 // Builds the same empathetic-companion system prompt the serverless function uses.
 function summarizeHistory(history) {
