@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { getWellnessReply } from '../lib/ai.js'
 
 const COLORS = {
   bg: '#1a1a2e',
@@ -43,25 +44,22 @@ export default function Chat({ todayEntry, history = [] }) {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          examType: todayEntry?.examType,
-          mood: todayEntry?.mood,
-          journal: todayEntry?.journal,
-          history,
-          message,
-        }),
+      const { reply } = await getWellnessReply({
+        examType: todayEntry?.examType,
+        mood: todayEntry?.mood,
+        journal: todayEntry?.journal,
+        history,
+        message,
       })
-      const data = await res.json()
-      const reply =
-        data.reply || data.error || 'Sorry, I had trouble responding just now.'
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
     } catch (err) {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Network error. Please try again.' },
+        {
+          role: 'assistant',
+          content:
+            "I'm having trouble connecting right now. Please try again in a moment.",
+        },
       ])
     } finally {
       setLoading(false)

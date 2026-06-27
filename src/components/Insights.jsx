@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getWellnessReply } from '../lib/ai.js'
 
 const COLORS = {
   bg: '#1a1a2e',
@@ -81,23 +82,16 @@ export default function Insights({ history = [] }) {
     const latest = sorted[sorted.length - 1] || {}
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          examType: latest.examType,
-          mood: latest.mood,
-          journal: latest.journal,
-          history,
-          message: ANALYZE_MESSAGE,
-        }),
+      const { reply } = await getWellnessReply({
+        examType: latest.examType,
+        mood: latest.mood,
+        journal: latest.journal,
+        history,
+        message: ANALYZE_MESSAGE,
       })
-      const data = await res.json()
-      setAnalysis(
-        data.reply || data.error || 'Could not analyze your patterns right now.'
-      )
+      setAnalysis(reply)
     } catch (err) {
-      setAnalysis('Network error. Please try again.')
+      setAnalysis('Could not analyze your patterns right now. Please try again.')
     } finally {
       setLoading(false)
     }
