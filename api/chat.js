@@ -1,8 +1,8 @@
 // Vercel serverless function: /api/chat
 // Empathetic mental wellness companion for Indian competitive exam students.
-// Proxies chat requests to Google Gemini (gemini-1.5-flash) using native fetch — no SDK.
+// Proxies chat requests to Google Gemini using native fetch — no SDK.
 
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 // Turns the last-7-days history into a short, readable summary for the prompt.
