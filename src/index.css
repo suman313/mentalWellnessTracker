@@ -6,10 +6,23 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #1a1a2e;
-  color: #e6e6e6;
+  min-height: 100%;
+  background: radial-gradient(circle at top, #1f335d 0%, #0f1728 42%, #080c14 100%);
+  color: #f5f7ff;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20%;
+  pointer-events: none;
+  background: radial-gradient(circle at 20% 20%, rgba(59, 226, 141, 0.16), transparent 28%),
+    radial-gradient(circle at 80% 0%, rgba(87, 125, 255, 0.2), transparent 26%);
+  filter: blur(20px);
+  z-index: -1;
 }
 
 #root {
@@ -156,5 +169,17 @@ body {
   .avatar-mouth-talk,
   .avatar-thought span {
     animation: none;
+  }
+}
+
+@keyframes voiceWave {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
   }
 }

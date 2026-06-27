@@ -13,12 +13,12 @@ function moodFace(mood) {
 }
 
 const COLORS = {
-  bg: '#1a1a2e',
-  surface: '#16213e',
-  accent: '#00c853',
-  text: '#e6e6e6',
+  bg: '#0c1424',
+  surface: '#13223b',
+  accent: '#3be28d',
+  text: '#f5f7ff',
   muted: '#9aa0b4',
-  border: '#2a2f4a',
+  border: '#223a57',
 }
 
 export default function MoodLogger({ onLogComplete }) {
@@ -129,13 +129,15 @@ export default function MoodLogger({ onLogComplete }) {
 
 const styles = {
   card: {
-    background: COLORS.surface,
+    background: 'linear-gradient(180deg, rgba(19,34,59,0.97) 0%, rgba(12,20,36,0.97) 100%)',
     color: COLORS.text,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: '1.5rem',
     maxWidth: 480,
     margin: '0 auto',
-    border: `1px solid ${COLORS.border}`,
+    border: `1px solid rgba(255,255,255,0.08)`,
+    boxShadow: '0 20px 50px rgba(2, 8, 23, 0.32)',
+    backdropFilter: 'blur(14px)',
   },
   heading: {
     marginTop: 0,
@@ -181,17 +183,18 @@ const styles = {
   },
   select: {
     width: '100%',
-    padding: '0.6rem',
-    borderRadius: 8,
+    padding: '0.7rem',
+    borderRadius: 10,
     background: COLORS.bg,
     color: COLORS.text,
     border: `1px solid ${COLORS.border}`,
     fontSize: '0.95rem',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
   },
   textarea: {
     width: '100%',
     padding: '0.7rem',
-    borderRadius: 8,
+    borderRadius: 10,
     background: COLORS.bg,
     color: COLORS.text,
     border: `1px solid ${COLORS.border}`,
@@ -199,17 +202,19 @@ const styles = {
     resize: 'vertical',
     boxSizing: 'border-box',
     fontFamily: 'inherit',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
   },
   button: {
     marginTop: '1.25rem',
     width: '100%',
-    padding: '0.75rem',
-    borderRadius: 8,
+    padding: '0.8rem',
+    borderRadius: 10,
     border: 'none',
-    background: COLORS.accent,
-    color: '#04210f',
+    background: 'linear-gradient(135deg, #3be28d 0%, #20b96b 100%)',
+    color: '#04150d',
     fontWeight: 700,
     fontSize: '1rem',
     cursor: 'pointer',
+    boxShadow: '0 10px 25px rgba(59, 226, 141, 0.22)',
   },
 }

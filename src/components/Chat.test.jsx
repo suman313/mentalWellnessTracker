@@ -50,6 +50,29 @@ describe('Chat', () => {
     expect(stop).toHaveBeenCalledTimes(1)
   })
 
+  it('uses a wake phrase to send a cleaned voice message', async () => {
+    const recognition = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      lang: 'en-US',
+      continuous: false,
+      interimResults: false,
+      onresult: null,
+      onerror: null,
+      onend: null,
+    }
+
+    window.SpeechRecognition = vi.fn(() => recognition)
+    getWellnessReply.mockResolvedValue({ reply: 'I am here for you.', source: 'puter' })
+
+    render(<Chat todayEntry={todayEntry} history={[todayEntry]} />)
+    recognition.onresult({
+      results: [[{ transcript: 'Mira, I feel overwhelmed' }]],
+    })
+
+    expect(await screen.findByText('I feel overwhelmed')).toBeInTheDocument()
+  })
+
   it('requests an opening greeting automatically on mount', async () => {
     getWellnessReply.mockResolvedValue({ reply: 'Hi there! 🌱', source: 'puter' })
     render(<Chat todayEntry={todayEntry} history={[todayEntry]} />)

@@ -3,14 +3,14 @@ import { getWellnessReply } from '../lib/ai.js'
 import Avatar from './Avatar.jsx'
 
 const COLORS = {
-  bg: '#1a1a2e',
-  surface: '#16213e',
+  bg: '#0c1424',
+  surface: '#13223b',
   userBubble: '#1b5e20',
-  aiBubble: '#2a2f4a',
-  accent: '#00c853',
-  text: '#e6e6e6',
+  aiBubble: '#1f2f47',
+  accent: '#3be28d',
+  text: '#f5f7ff',
   muted: '#9aa0b4',
-  border: '#2a2f4a',
+  border: '#223a57',
 }
 
 const OPENING_MESSAGE =
@@ -21,6 +21,7 @@ export default function Chat({ todayEntry, history = [] }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [listening, setListening] = useState(false)
+  const [voiceTranscript, setVoiceTranscript] = useState('')
   // 'idle' | 'thinking' | 'talking' — drives Mira's animation.
   const [avatarState, setAvatarState] = useState('idle')
 
@@ -62,8 +63,16 @@ export default function Chat({ todayEntry, history = [] }) {
         .join(' ')
         .trim()
 
-      if (transcript) {
-        setInput(transcript)
+      const cleaned = transcript
+        .replace(/^mira\s*,?\s*/i, '')
+        .trim()
+
+      if (cleaned) {
+        setInput(cleaned)
+        setVoiceTranscript(cleaned)
+        sendToApi(cleaned)
+      } else {
+        setVoiceTranscript('')
       }
       setListening(false)
       setAvatarState('idle')
@@ -178,7 +187,7 @@ export default function Chat({ todayEntry, history = [] }) {
         <div style={styles.assistantCopy}>
           <div style={styles.assistantName}>Mira</div>
           <div style={styles.assistantHint}>
-            {listening ? 'Listening for your voice…' : 'Tap to speak with your companion'}
+            {listening ? 'Listening for your voice…' : 'Say “Mira” and tell me how you feel'}
           </div>
         </div>
         <button
@@ -225,6 +234,18 @@ export default function Chat({ todayEntry, history = [] }) {
           </div>
         ))}
 
+        {listening && (
+          <div style={{ ...styles.row, justifyContent: 'flex-start' }}>
+            <div style={{ ...styles.bubble, ...styles.aiBubble }}>
+              <span style={styles.waveform} aria-hidden="true">
+                <span style={{ ...styles.waveformBar, ...styles.waveformBar1 }} />
+                <span style={{ ...styles.waveformBar, ...styles.waveformBar2 }} />
+                <span style={{ ...styles.waveformBar, ...styles.waveformBar3 }} />
+              </span>
+            </div>
+          </div>
+        )}
+
         {loading && (
           <div style={{ ...styles.row, justifyContent: 'flex-start' }}>
             <div style={{ ...styles.bubble, ...styles.aiBubble }}>
@@ -252,25 +273,28 @@ export default function Chat({ todayEntry, history = [] }) {
 
 const styles = {
   card: {
-    background: COLORS.surface,
+    background: 'linear-gradient(180deg, rgba(19,34,59,0.97) 0%, rgba(12,20,36,0.97) 100%)',
     color: COLORS.text,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: '1.5rem',
     maxWidth: 480,
     margin: '0 auto',
-    border: `1px solid ${COLORS.border}`,
+    border: `1px solid rgba(255,255,255,0.08)`,
     display: 'flex',
     flexDirection: 'column',
+    boxShadow: '0 20px 50px rgba(2, 8, 23, 0.32)',
+    backdropFilter: 'blur(14px)',
   },
   assistantBar: {
     display: 'flex',
     alignItems: 'center',
     gap: '0.75rem',
     marginBottom: '1rem',
-    padding: '0.75rem',
-    borderRadius: 12,
-    background: COLORS.bg,
-    border: `1px solid ${COLORS.border}`,
+    padding: '0.8rem',
+    borderRadius: 14,
+    background: 'linear-gradient(135deg, rgba(12,20,36,0.96) 0%, rgba(16,28,49,0.96) 100%)',
+    border: `1px solid rgba(255,255,255,0.08)`,
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
   },
   assistantCopy: {
     flex: 1,
@@ -287,15 +311,17 @@ const styles = {
   voiceBtn: {
     border: 'none',
     borderRadius: 999,
-    padding: '0.55rem 0.85rem',
-    background: COLORS.accent,
-    color: '#04210f',
+    padding: '0.6rem 0.9rem',
+    background: 'linear-gradient(135deg, #3be28d 0%, #20b96b 100%)',
+    color: '#04150d',
     fontWeight: 700,
     cursor: 'pointer',
+    boxShadow: '0 10px 20px rgba(59, 226, 141, 0.22)',
   },
   voiceBtnActive: {
-    background: '#ff8a80',
+    background: 'linear-gradient(135deg, #ff8a80 0%, #f25f53 100%)',
     color: '#2f0a08',
+    boxShadow: '0 10px 20px rgba(242, 95, 83, 0.2)',
   },
   heading: {
     marginTop: 0,
@@ -340,26 +366,52 @@ const styles = {
     letterSpacing: '0.15em',
     color: COLORS.muted,
   },
+  waveform: {
+    display: 'inline-flex',
+    alignItems: 'flex-end',
+    gap: '2px',
+    height: '1rem',
+  },
+  waveformBar: {
+    width: '3px',
+    background: COLORS.accent,
+    borderRadius: 999,
+    animation: 'voiceWave 0.9s ease-in-out infinite',
+  },
+  waveformBar1: {
+    height: '0.45rem',
+    animationDelay: '0s',
+  },
+  waveformBar2: {
+    height: '0.8rem',
+    animationDelay: '0.15s',
+  },
+  waveformBar3: {
+    height: '0.6rem',
+    animationDelay: '0.3s',
+  },
   form: {
     display: 'flex',
     gap: '0.5rem',
   },
   input: {
     flex: 1,
-    padding: '0.65rem',
-    borderRadius: 8,
+    padding: '0.7rem',
+    borderRadius: 10,
     background: COLORS.bg,
     color: COLORS.text,
     border: `1px solid ${COLORS.border}`,
     fontSize: '0.95rem',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
   },
   sendBtn: {
     padding: '0 1.25rem',
-    borderRadius: 8,
+    borderRadius: 10,
     border: 'none',
-    background: COLORS.accent,
-    color: '#04210f',
+    background: 'linear-gradient(135deg, #3be28d 0%, #20b96b 100%)',
+    color: '#04150d',
     fontWeight: 700,
     cursor: 'pointer',
+    boxShadow: '0 10px 20px rgba(59, 226, 141, 0.22)',
   },
 }

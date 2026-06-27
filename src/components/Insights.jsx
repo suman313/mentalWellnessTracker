@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { getWellnessReply } from '../lib/ai.js'
 
 const COLORS = {
-  bg: '#1a1a2e',
-  surface: '#16213e',
-  accent: '#00c853',
-  text: '#e6e6e6',
+  bg: '#0c1424',
+  surface: '#13223b',
+  accent: '#3be28d',
+  text: '#f5f7ff',
   muted: '#9aa0b4',
-  border: '#2a2f4a',
-  grid: '#2a2f4a',
+  border: '#223a57',
+  grid: '#2a3b55',
 }
 
 const ANALYZE_MESSAGE =
@@ -193,13 +193,15 @@ export default function Insights({ history = [] }) {
 
 const styles = {
   card: {
-    background: COLORS.surface,
+    background: 'linear-gradient(180deg, rgba(19,34,59,0.97) 0%, rgba(12,20,36,0.97) 100%)',
     color: COLORS.text,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: '1.5rem',
     maxWidth: 480,
     margin: '0 auto',
-    border: `1px solid ${COLORS.border}`,
+    border: `1px solid rgba(255,255,255,0.08)`,
+    boxShadow: '0 20px 50px rgba(2, 8, 23, 0.32)',
+    backdropFilter: 'blur(14px)',
   },
   heading: { marginTop: 0, marginBottom: '1.25rem' },
   subheading: {
@@ -213,11 +215,12 @@ const styles = {
   },
   badge: {
     flex: 1,
-    background: COLORS.bg,
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 12,
+    background: 'linear-gradient(135deg, rgba(12,20,36,0.96) 0%, rgba(16,28,49,0.96) 100%)',
+    border: `1px solid rgba(255,255,255,0.08)`,
+    borderRadius: 14,
     padding: '1rem',
     textAlign: 'center',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
   },
   badgeValue: {
     display: 'block',
@@ -232,9 +235,10 @@ const styles = {
   chart: {
     width: '100%',
     height: 'auto',
-    background: COLORS.bg,
-    borderRadius: 12,
-    border: `1px solid ${COLORS.border}`,
+    background: 'linear-gradient(135deg, rgba(12,20,36,0.96) 0%, rgba(16,28,49,0.96) 100%)',
+    borderRadius: 14,
+    border: `1px solid rgba(255,255,255,0.08)`,
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
   },
   empty: {
     color: COLORS.muted,
@@ -244,14 +248,15 @@ const styles = {
   button: {
     marginTop: '1.5rem',
     width: '100%',
-    padding: '0.75rem',
-    borderRadius: 8,
+    padding: '0.8rem',
+    borderRadius: 10,
     border: 'none',
-    background: COLORS.accent,
-    color: '#04210f',
+    background: 'linear-gradient(135deg, #3be28d 0%, #20b96b 100%)',
+    color: '#04150d',
     fontWeight: 700,
     fontSize: '0.95rem',
     cursor: 'pointer',
+    boxShadow: '0 10px 20px rgba(59, 226, 141, 0.22)',
   },
   buttonDisabled: {
     opacity: 0.5,
