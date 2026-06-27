@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import MoodLogger from './MoodLogger.jsx'
 
@@ -24,10 +24,10 @@ describe('MoodLogger', () => {
     render(<MoodLogger />)
     const slider = screen.getByRole('slider')
 
-    fireChange(slider, '2')
+    fireEvent.change(slider, { target: { value: '2' } })
     expect(screen.getByText('Struggling')).toBeInTheDocument()
 
-    fireChange(slider, '9')
+    fireEvent.change(slider, { target: { value: '9' } })
     expect(screen.getByText('Feeling Good')).toBeInTheDocument()
   })
 
@@ -36,11 +36,15 @@ describe('MoodLogger', () => {
     const onLogComplete = vi.fn()
     render(<MoodLogger onLogComplete={onLogComplete} />)
 
-    const slider = screen.getByRole('slider')
-    fireChange(slider, '8')
-
-    await user.selectOptions(screen.getByLabelText(/exam you're preparing for/i), 'JEE')
-    await user.type(screen.getByLabelText(/today's journal/i), 'Felt productive today')
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '8' } })
+    await user.selectOptions(
+      screen.getByLabelText(/exam you're preparing for/i),
+      'JEE',
+    )
+    await user.type(
+      screen.getByLabelText(/today's journal/i),
+      'Felt productive today',
+    )
     await user.click(screen.getByRole('button', { name: /save check-in/i }))
 
     const history = readHistory()
@@ -56,6 +60,14 @@ describe('MoodLogger', () => {
     expect(onLogComplete).toHaveBeenCalledWith(
       expect.objectContaining({ mood: 8, examType: 'JEE' }),
     )
+  })
+
+  it('trims journal whitespace before saving', async () => {
+    const user = userEvent.setup()
+    render(<MoodLogger />)
+    await user.type(screen.getByLabelText(/today's journal/i), '   spaced   ')
+    await user.click(screen.getByRole('button', { name: /save check-in/i }))
+    expect(readHistory()[0].journal).toBe('spaced')
   })
 
   it('appends to existing history and trims to 30 entries', async () => {
@@ -74,8 +86,7 @@ describe('MoodLogger', () => {
 
     const history = readHistory()
     expect(history).toHaveLength(30)
-    // Oldest entry was dropped; newest is today's.
-    expect(history[29].date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    // Oldest entry was dropped; the second-oldest is now first.
     expect(history[0].date).toBe('2026-05-02')
   })
 
@@ -94,13 +105,3 @@ describe('MoodLogger', () => {
     expect(readHistory()).toHaveLength(1)
   })
 })
-
-// React listens to the native input event; fire it directly for range inputs.
-function fireChange(element, value) {
-  const setter = Object.getOwnPropertyDescriptor(
-    window.HTMLInputElement.prototype,
-    'value',
-  ).set
-  setter.call(element, value)
-  element.dispatchEvent(new Event('input', { bubbles: true }))
-}

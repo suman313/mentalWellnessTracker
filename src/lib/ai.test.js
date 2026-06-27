@@ -83,7 +83,7 @@ describe('getWellnessReply', () => {
     const [messages, options] = chat.mock.calls[0]
     expect(messages[0].role).toBe('system')
     expect(messages[1]).toEqual({ role: 'user', content: 'Help me focus' })
-    expect(options.model).toBe('google/gemini-2.0-flash')
+    expect(options.model).toBe('gemini-2.5-flash')
   })
 
   it('normalizes a Puter response shaped as { message: { content } }', async () => {

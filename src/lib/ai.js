@@ -7,8 +7,9 @@
 // Both paths use the same context-rich system prompt so responses stay
 // consistent regardless of which provider answers.
 
-// Route Puter to a Gemini model to keep the "powered by Google Gemini" story.
-const PUTER_MODEL = 'gemini-2.5-flash'
+// Claude Sonnet via Puter — warm, emotionally nuanced replies, ideal for an
+// empathetic wellness companion. Reliable on Puter (no API key / quota for us).
+const PUTER_MODEL = 'claude-sonnet-4-5'
 
 // Builds the same empathetic-companion system prompt the serverless function uses.
 function summarizeHistory(history) {
